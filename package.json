@@ -1,0 +1,29 @@
+{
+  "name": "functionite",
+  "version": "1.0.0",
+  "description": "Pass arguments and return values to function chains in an asynchronous manner",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crokita/functionite.git"
+  },
+  "keywords": [
+    "functionite",
+    "function",
+    "callback",
+    "chain",
+    "asynchronous"
+  ],
+  "author": "Christopher Rokita",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/crokita/functionite/issues"
+  },
+  "homepage": "https://github.com/crokita/functionite"
+}
