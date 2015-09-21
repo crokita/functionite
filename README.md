@@ -7,7 +7,7 @@ Characteristics:
  * no dependencies
  * run on browser and nodejs
  * chain asynchronous functions to prevent the pyramid of doom
- * convert synchronous functions to asynchronous by adding a callback
+ * convert functions without a callback into ones compatible for functionite
  
 Demonstrations can be found in /examples
 
