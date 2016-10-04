@@ -11,86 +11,101 @@
 		return arr;
 	}
 
-	//given a function, can convert it into one with a callback
-	//given nothing, will expose the stack and some functions to deal
-	//with chaining
 	function functionite (func) {
-		//the stack is the array where stack function objects are stored
-		//each object in this array contains the following:
-		//f: a function. it is passed as a parameter when calling "to"
-		//args: arguments for the function, passed in after the function
-		var stack = [];
-
-		//push a function and its parameters onto the stack
-		stack.to = function () {
-			var stackFunc = {
-				f: arguments[0],
-				args: objToArray(arguments).slice(1)
-			};
-			stack.push(stackFunc);
-			return stack;
-		};
-
-		//call all the functions in the stack, passing the results of
-		//previous functions to the next one as arguments. the callback 
-		//returns an array of the results of the final function called
-		stack.then = function (cb) {
-			var funcObj = stack.shift(); //remove the next function in stack
-			for (var arg in funcObj.args) { //apply args without invocation
-				funcObj.f = funcObj.f.bind(this, funcObj.args[arg]);
-			}
-			funcObj.f(function () {//call the function. this is the callback
-				if (stack.length !== 0) {
-					//this is how the results of values, passed from the callback
-					//are pushed to the next function. repeat this process
-					stack[0].args = objToArray(arguments).concat(stack[0].args);
-					stack.then(cb);
-				}
-				else {
-					//finished calling the functions. pass in the final
-					//function's callback values
-					cb(objToArray(arguments));
-				}
-			});
-		};
-
-		//continue calling functions in the stack as long as each function
-		//returns the same value specified in <target>. results are NOT
-		//passed to the next function
-		stack.equalTo = function (target, cb) {
-			var funcObj = stack.shift(); //remove the next function in stack
-			for (var arg in funcObj.args) { //apply args without invocation
-				funcObj.f = funcObj.f.bind(this, funcObj.args[arg]);
-			}
-			funcObj.f(function (result) { //call the function. this is the callback
-				//each callback should return some result to be checked against the target
-				if (result === target) {
-					if (stack.length !== 0) { //continue this process
-						stack.equalTo(target, cb);
-					}
-					else { //done calling functions and all results matched the target
-						cb(true);
-					}
-				}
-				else { //as soon as a result doesn't match the target, callback false
-					cb(false);
-				}
-			});
-		};
-		//if a function is passed in, convert the function into something that can be used with functionite
-		if (func) {
+		//if a function is passed in, convert it into a function that returns
+		//the result in a callback and return that function
+		if (typeof func === "function") {
 			var newFunc = function () {
-				//move this apply function's result into this variable. 
-				//subtituting the result variable in the second line causes a bug for browsers
-				var result = func.apply(this, objToArray(arguments).slice(0, -1));
-				arguments[arguments.length - 1](result);
+				var argArray = objToArray(arguments);
+				//don't include the last argument when passing into the function, as that is the callback function 
+				var result = func.apply(this, argArray.slice(0, argArray.length - 1));
+				//use the callback that should've been passed in (the last parameter)
+				argArray[argArray.length - 1](result);
 			}
 			return newFunc;
 		}
-		else {
-			return stack;
+		//otherwise, build an object made for easily chaining asynchronous functions together
+		var helper = {};
+		//an array of functions to invoke in order
+		helper.queue = [];
+		//pass will include called back arguments and will wait for the callback
+		helper.pass = function () {
+			makeQueueObj(arguments, true, true);
+			return helper;
 		}
+		//pass won't include called back arguments and will wait for the callback
+		helper.toss = function () {
+			makeQueueObj(arguments, false, true);
+			return helper;
+		}
+		//jump will include called back arguments and won't wait for the callback
+		helper.jump = function () {
+			makeQueueObj(arguments, true, false);
+			return helper;
+		}
+		//skip won't include called back arguments and won't wait for the callback
+		helper.skip = function () {
+			makeQueueObj(arguments, false, false);
+			return helper;
+		}
+
+		function makeQueueObj (args, pass, wait) {
+			var argArray = objToArray(args);
+			var finalFunction = argArray[0];
+			//push the function, the arguments and the behavior "pass" to the queue
+			//first argument is the function, so don't add that in args array
+			helper.queue.push({
+				pass: pass,
+				wait: wait,
+				args: argArray.slice(1, argArray.length),
+			    f: finalFunction
+			});
+		}
+
+		//invoke all the functions in the queue
+		helper.go = function (cb) {
+			//start invoking functions
+			invoke();
+		}
+
+		function invoke (returnArgs) {
+			var argArray = objToArray(returnArgs);
+			//get the next function off the queue
+			var queueObj = helper.queue.shift();
+			//concatenate the return values of the previous function and the arguments of this one
+			//ONLY if the function has pass enabled
+			var totalArgs;
+			if (queueObj.pass) {
+				totalArgs = argArray.concat(queueObj.args);
+			}
+			else {
+				totalArgs = queueObj.args;
+			}
+			//apply the args to the function, including a callback function
+			//so that when the function is done we pass the results to the next function
+			var cbFunc = function () {
+				//invoke the next function
+				invoke(arguments);
+			}
+			//only if there's more functions to execute, then add cbFunc so invoke gets called again
+			if (helper.queue.length !== 0) { 
+				//if wait is enabled, use cbFunc to call the next function only when the previous one is done
+				if (queueObj.wait) { 
+					totalArgs.push(cbFunc);
+				}
+				else { //don't wait for the next function to be done. pass in empty callback
+					totalArgs.push(function(){});
+				}
+			}
+			queueObj.f.apply(this, totalArgs);
+			//immediately call the next function after this one. next function won't have called back arguments
+			if (!queueObj.wait) { 
+				invoke();
+			}
+		}
+		return helper;
 	}
+
 	//add compatability with browser and with nodejs
 	//from http://underscorejs.org/docs/underscore.html
 	if (typeof exports !== 'undefined') {
