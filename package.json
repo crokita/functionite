@@ -20,6 +20,10 @@
     "chain",
     "asynchronous"
   ],
+  "files": [
+    "index.js",
+    "index.min.js"
+  ],
   "author": "Christopher Rokita",
   "license": "MIT",
   "bugs": {
