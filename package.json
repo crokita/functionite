@@ -1,6 +1,6 @@
 {
   "name": "functionite",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "Pass arguments and return values to function chains in an asynchronous manner",
   "main": "index.js",
   "directories": {

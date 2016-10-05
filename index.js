@@ -18,7 +18,7 @@
 			var newFunc = function () {
 				var argArray = objToArray(arguments);
 				//don't include the last argument when passing into the function, as that is the callback function 
-				var result = func.apply(this, argArray.slice(0, argArray.length - 1));
+				var result = func.apply(func, argArray.slice(0, argArray.length - 1));
 				//use the callback that should've been passed in (the last parameter)
 				argArray[argArray.length - 1](result);
 			}
@@ -30,6 +30,7 @@
 		helper.queue = [];
 		//pass will include called back arguments and will wait for the callback
 		helper.pass = function () {
+			console.log(arguments);
 			makeQueueObj(arguments, true, true);
 			return helper;
 		}
@@ -48,16 +49,23 @@
 			makeQueueObj(arguments, false, false);
 			return helper;
 		}
+		//overrides the context of the previous function passed
+		helper.with = function (context) {
+			helper.queue[helper.queue.length - 1].context = context;
+			return helper;
+		}
 
 		function makeQueueObj (args, pass, wait) {
 			var argArray = objToArray(args);
 			var finalFunction = argArray[0];
+			var context = finalFunction; //set the context to the function passed in when using "apply"
 			//push the function, the arguments and the behavior "pass" to the queue
 			//first argument is the function, so don't add that in args array
 			helper.queue.push({
 				pass: pass,
 				wait: wait,
 				args: argArray.slice(1, argArray.length),
+				context: context,
 			    f: finalFunction
 			});
 		}
@@ -97,7 +105,7 @@
 					totalArgs.push(function(){});
 				}
 			}
-			queueObj.f.apply(this, totalArgs);
+			queueObj.f.apply(queueObj.context, totalArgs);
 			//immediately call the next function after this one. next function won't have called back arguments
 			if (!queueObj.wait) { 
 				invoke();
