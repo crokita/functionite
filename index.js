@@ -30,7 +30,6 @@
 		helper.queue = [];
 		//pass will include called back arguments and will wait for the callback
 		helper.pass = function () {
-			console.log(arguments);
 			makeQueueObj(arguments, true, true);
 			return helper;
 		}
